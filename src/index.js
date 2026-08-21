@@ -4,6 +4,7 @@ const http = require('http');
 const connectDB = require('./config/db');
 const env = require('./config/env');
 const authRoutes = require('./routes/auth');
+const connectionRoutes = require('./routes/connections');
 
 const app = express();
 const server = http.createServer(app);
@@ -12,6 +13,7 @@ app.use(cors());
 app.use(express.json());
 
 app.use('/api/auth', authRoutes);
+app.use('/api/connections', connectionRoutes);
 
 app.get('/health', (req, res) => res.json({ status: 'ok' }));
 

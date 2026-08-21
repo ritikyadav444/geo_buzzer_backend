@@ -3,8 +3,10 @@ const cors = require('cors');
 const http = require('http');
 const connectDB = require('./config/db');
 const env = require('./config/env');
+const setupSocket = require('./services/socket');
 const authRoutes = require('./routes/auth');
 const connectionRoutes = require('./routes/connections');
+const alarmRoutes = require('./routes/alarms');
 
 const app = express();
 const server = http.createServer(app);
@@ -14,11 +16,14 @@ app.use(express.json());
 
 app.use('/api/auth', authRoutes);
 app.use('/api/connections', connectionRoutes);
+app.use('/api/alarms', alarmRoutes);
 
 app.get('/health', (req, res) => res.json({ status: 'ok' }));
 
 async function start() {
   await connectDB();
+  const io = setupSocket(server);
+  app.set('io', io);
   server.listen(env.port, () => {
     console.log(`GeoBuzzer API running on port ${env.port}`);
   });

@@ -7,7 +7,7 @@ if (env.smtp.user && env.smtp.pass) {
   transporter = nodemailer.createTransport({
     host: env.smtp.host,
     port: env.smtp.port,
-    secure: false,
+    secure: env.smtp.port === 465,
     auth: { user: env.smtp.user, pass: env.smtp.pass },
   });
 }

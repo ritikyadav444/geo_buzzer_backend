@@ -29,17 +29,20 @@ async function connectUsers(app, token, recipientUsername) {
 }
 
 beforeAll(async () => {
+  await mongoose.disconnect();
   mongoServer = await MongoMemoryServer.create();
   process.env.MONGODB_URI = mongoServer.getUri();
   process.env.JWT_SECRET = 'test-secret';
   process.env.JWT_REFRESH_SECRET = 'test-refresh-secret';
-  delete require.cache[require.resolve('../src/index')];
-  delete require.cache[require.resolve('../src/config/env')];
-  delete require.cache[require.resolve('../src/config/db')];
+
+  for (const key of Object.keys(require.cache)) {
+    if (key.includes('src')) delete require.cache[key];
+  }
+
   const mod = require('../src/index');
   app = mod.app;
-  await mongoose.connection.asPromise();
-});
+  await mongoose.connect(mongoServer.getUri());
+}, 30000);
 
 afterAll(async () => {
   await mongoose.connection.close();

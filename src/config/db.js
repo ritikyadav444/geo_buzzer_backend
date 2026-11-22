@@ -6,10 +6,15 @@ const env = require('./env');
 dns.setDefaultResultOrder('ipv4first');
 
 async function srvToStandard(uri) {
-  const match = uri.match(/^mongodb\+srv:\/\/([^:]+):([^@]+)@([^/?]+)\/?(.*)$/);
-  if (!match) return uri;
+  if (!uri.startsWith('mongodb+srv://')) return uri;
 
-  const [, user, pass, host, rest] = match;
+  const parsed = new URL(uri);
+  const host = parsed.hostname;
+  const user = decodeURIComponent(parsed.username);
+  const pass = decodeURIComponent(parsed.password);
+  const dbName = parsed.pathname.replace('/', '') || 'geobuzzer';
+  const queryFromUri = parsed.search ? parsed.search.slice(1) : '';
+
   const resolver = new Resolver();
   resolver.setServers(['8.8.8.8', '8.8.4.4', '1.1.1.1']);
 
@@ -21,10 +26,6 @@ async function srvToStandard(uri) {
     const txtRecords = await resolver.resolveTxt(host);
     txtOptions = txtRecords.flat().join('');
   } catch (_) {}
-
-  const parts = rest.split('?');
-  const dbName = parts[0] || 'geobuzzer';
-  const queryFromUri = parts[1] || '';
 
   let qs = `ssl=true&authSource=admin`;
   if (txtOptions) qs += `&${txtOptions}`;

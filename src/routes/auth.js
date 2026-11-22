@@ -44,11 +44,7 @@ router.post('/signup', validate(['name', 'username', 'email', 'password']), asyn
       otpExpiry: new Date(Date.now() + 10 * 60 * 1000),
     });
 
-    try {
-      await sendOtpEmail(email, otp);
-    } catch (emailErr) {
-      console.error(`Failed to send OTP email to ${email}:`, emailErr.message);
-    }
+    sendOtpEmail(email, otp).catch(() => {});
 
     res.status(201).json({ message: 'Account created. Check your email for the verification code.', userId: user._id });
   } catch (err) {

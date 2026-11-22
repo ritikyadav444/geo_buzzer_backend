@@ -27,9 +27,13 @@ async function srvToStandard(uri) {
     txtOptions = txtRecords.flat().join('');
   } catch (_) {}
 
-  let qs = `ssl=true&authSource=admin`;
+  let qs = `ssl=true`;
   if (txtOptions) qs += `&${txtOptions}`;
-  if (queryFromUri) qs += `&${queryFromUri}`;
+  if (!qs.includes('authSource')) qs += `&authSource=admin`;
+  if (queryFromUri) {
+    const extra = queryFromUri.split('&').filter(p => !qs.includes(p.split('=')[0]));
+    if (extra.length) qs += `&${extra.join('&')}`;
+  }
 
   const standardUri = `mongodb://${encodeURIComponent(user)}:${encodeURIComponent(pass)}@${hosts}/${dbName}?${qs}`;
   console.log(`Resolved SRV to ${srvRecords.length} hosts`);

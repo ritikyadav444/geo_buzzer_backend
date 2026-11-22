@@ -117,8 +117,10 @@ router.post('/:id/trigger', validate(['location']), async (req, res) => {
   try {
     const alarm = await BuzzerAlarm.findById(req.params.id);
     if (!alarm) return res.status(404).json({ error: 'Alarm not found' });
-    if (!alarm.targets.map(t => t.toString()).includes(req.user.id)) {
-      return res.status(403).json({ error: 'Only a target can trigger this alarm' });
+    const isOwner = alarm.owner.toString() === req.user.id;
+    const isTarget = alarm.targets.map(t => t.toString()).includes(req.user.id);
+    if (!isOwner && !isTarget) {
+      return res.status(403).json({ error: 'Only the owner or a target can trigger this alarm' });
     }
     if (alarm.status !== 'active') {
       return res.status(400).json({ error: `Cannot trigger a ${alarm.status} alarm` });
@@ -135,18 +137,22 @@ router.post('/:id/trigger', validate(['location']), async (req, res) => {
 
     const io = req.app.get('io');
     if (io) {
-      io.to(`user:${alarm.owner}`).emit('alarm:triggered', {
+      const payload = {
         alarmId: alarm._id,
         triggeredBy: { id: req.user.id },
         location: req.body.location,
-      });
-      for (const targetId of alarm.targets) {
-        if (targetId.toString() !== req.user.id) {
-          io.to(`user:${targetId}`).emit('alarm:triggered', {
-            alarmId: alarm._id,
-            triggeredBy: { id: req.user.id },
-            location: req.body.location,
-          });
+        label: alarm.label,
+      };
+      if (isOwner) {
+        for (const targetId of alarm.targets) {
+          io.to(`user:${targetId}`).emit('alarm:triggered', payload);
+        }
+      } else {
+        io.to(`user:${alarm.owner}`).emit('alarm:triggered', payload);
+        for (const targetId of alarm.targets) {
+          if (targetId.toString() !== req.user.id) {
+            io.to(`user:${targetId}`).emit('alarm:triggered', payload);
+          }
         }
       }
     }

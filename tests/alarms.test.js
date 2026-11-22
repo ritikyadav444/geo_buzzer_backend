@@ -172,7 +172,7 @@ describe('Alarms', () => {
     expect(res.body.triggerLog).toBeDefined();
   });
 
-  it('non-target cannot trigger an alarm', async () => {
+  it('owner can trigger their own alarm', async () => {
     const alice = await createVerifiedUser('Alice', 'alice', 'alice@test.com');
     const bob = await createVerifiedUser('Bob', 'bob', 'bob@test.com');
     const aliceToken = await loginUser(app, 'alice@test.com');
@@ -191,6 +191,32 @@ describe('Alarms', () => {
     const res = await request(app)
       .post(`/api/alarms/${alarmRes.body._id}/trigger`)
       .set('Authorization', `Bearer ${aliceToken}`)
+      .send({ location: { lat: 28.6, lng: 77.2 } });
+
+    expect(res.status).toBe(200);
+  });
+
+  it('unrelated user cannot trigger an alarm', async () => {
+    const alice = await createVerifiedUser('Alice2', 'alice2', 'alice2@test.com');
+    const bob = await createVerifiedUser('Bob2', 'bob2', 'bob2@test.com');
+    const charlie = await createVerifiedUser('Charlie', 'charlie', 'charlie@test.com');
+    const aliceToken = await loginUser(app, 'alice2@test.com');
+    const bobToken = await loginUser(app, 'bob2@test.com');
+    const charlieToken = await loginUser(app, 'charlie@test.com');
+
+    const connRes = await connectUsers(app, aliceToken, 'bob2');
+    await request(app)
+      .post(`/api/connections/${connRes.body._id}/accept`)
+      .set('Authorization', `Bearer ${bobToken}`);
+
+    const alarmRes = await request(app)
+      .post('/api/alarms')
+      .set('Authorization', `Bearer ${aliceToken}`)
+      .send({ targets: [bob._id], location: { lat: 28.6, lng: 77.2 } });
+
+    const res = await request(app)
+      .post(`/api/alarms/${alarmRes.body._id}/trigger`)
+      .set('Authorization', `Bearer ${charlieToken}`)
       .send({ location: { lat: 28.6, lng: 77.2 } });
 
     expect(res.status).toBe(403);

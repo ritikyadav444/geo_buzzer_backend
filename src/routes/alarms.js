@@ -2,6 +2,7 @@ const express = require('express');
 const BuzzerAlarm = require('../models/BuzzerAlarm');
 const TriggerLog = require('../models/TriggerLog');
 const Connection = require('../models/Connection');
+const User = require('../models/User');
 const authMiddleware = require('../middleware/auth');
 const validate = require('../middleware/validate');
 
@@ -137,9 +138,10 @@ router.post('/:id/trigger', validate(['location']), async (req, res) => {
 
     const io = req.app.get('io');
     if (io) {
+      const triggerUser = await User.findById(req.user.id).select('name username');
       const payload = {
         alarmId: alarm._id,
-        triggeredBy: { id: req.user.id },
+        triggeredBy: { id: req.user.id, name: triggerUser?.name || '', username: triggerUser?.username || '' },
         location: req.body.location,
         label: alarm.label,
       };
